@@ -25,7 +25,7 @@ END:VCARD`,
   },
 };
 
-// temp folder
+// Temp folder
 const tempDir = path.join(__dirname, "../temp");
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
@@ -36,47 +36,43 @@ cmd(
     react: "🎵",
     desc: "Download YouTube Song",
     category: "download",
-    use: ".song <song name> OR reply + .song",
+    use: ".song <song name or YouTube link>",
     filename: __filename,
   },
-
   async (conn, mek, m, { from, reply, q }) => {
     try {
-      // 🔹 reply text support
+      // 🔹 Reply support
       if (!q) {
-        const quoted =
-          mek.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        const quoted = mek.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         if (quoted) {
-          q =
-            quoted.conversation ||
-            quoted.extendedTextMessage?.text;
+          q = quoted.conversation || quoted.extendedTextMessage?.text;
         }
       }
 
-      if (!q)
-        return reply(
-          "⚠️ Please provide a song name or YouTube link (or reply to a message)."
-        );
+      if (!q) return reply("⚠️ Song name or YouTube link ekak denna.");
 
-      // 🔍 Search
-      const search = await yts(q);
-      if (!search.videos?.length)
-        return reply("❌ The song could not be found.");
+      let video;
 
-      const video = search.videos[0];
+      // 🔹 Check if YouTube link
+      if (/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(q)) {
+        // Direct YouTube link
+        const search = await yts(q);
+        if (!search.videos.length) return reply("❌ Video not found.");
+        video = search.videos[0];
+      } else {
+        // Search by name
+        const search = await yts(q);
+        if (!search.videos.length) return reply("❌ Song not found.");
+        video = search.videos[0];
+      }
 
-      // 🌐 API
-      const apiUrl = `https://api-aswin-sparky.koyeb.app/api/downloader/song?search=${encodeURIComponent(
-        video.url
-      )}`;
+      const apiUrl = `https://api-aswin-sparky.koyeb.app/api/downloader/song?search=${encodeURIComponent(video.url)}`;
       const { data } = await axios.get(apiUrl);
 
-      if (!data?.status || !data?.data?.url)
-        return reply("❌ The song could not be found.");
+      if (!data?.status || !data?.data?.url) return reply("❌ Song download karanna bari una.");
 
       const audioUrl = data.data.url;
 
-      // 📩 menu
       const caption = `
 🎶 *RANUMITHA-X-MD SONG DOWNLOADER* 🎶
 
@@ -92,116 +88,50 @@ cmd(
 2️⃣ Document 📁
 3️⃣ Voice Note 🎤
 
-> © Powered by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`;
+> © Powered by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠D`;
 
-      const sentMsg = await conn.sendMessage(
-        from,
-        { image: { url: video.thumbnail }, caption },
-        { quoted: fakevCard }
-      );
-
+      const sentMsg = await conn.sendMessage(from, { image: { url: video.thumbnail }, caption }, { quoted: fakevCard });
       const messageID = sentMsg.key.id;
 
-      // 🧠 one-time reply handler
       const handler = async (msgUpdate) => {
         try {
           const mekInfo = msgUpdate.messages?.[0];
           if (!mekInfo?.message) return;
 
-          const text =
-            mekInfo.message.conversation ||
-            mekInfo.message.extendedTextMessage?.text;
-
-          const isReply =
-            mekInfo.message?.extendedTextMessage?.contextInfo?.stanzaId ===
-            messageID;
-
+          const text = mekInfo.message.conversation || mekInfo.message.extendedTextMessage?.text;
+          const isReply = mekInfo.message?.extendedTextMessage?.contextInfo?.stanzaId === messageID;
           if (!isReply) return;
 
           const choice = text.trim();
-
-          const safeTitle = video.title
-            .replace(/[\\/:*?"<>|]/g, "")
-            .slice(0, 80);
-
+          const safeTitle = video.title.replace(/[\\/:*?"<>|]/g, "").slice(0, 80);
           const tempMp3 = path.join(tempDir, `${Date.now()}.mp3`);
           const tempOpus = path.join(tempDir, `${Date.now()}.opus`);
 
-          // ⬇️ Download react
-          await conn.sendMessage(from, {
-            react: { text: "⬇️", key: mekInfo.key },
-          });
+          // ⬇️ Download
+          await conn.sendMessage(from, { react: { text: "⬇️", key: mekInfo.key } });
+          // ⬆️ Upload
+          await conn.sendMessage(from, { react: { text: "⬆️", key: mekInfo.key } });
 
-          // ⬆️ Upload react
-          await conn.sendMessage(from, {
-            react: { text: "⬆️", key: mekInfo.key },
-          });
-
-          // 1️⃣ Audio
           if (choice === "1") {
-            await conn.sendMessage(
-              from,
-              {
-                audio: { url: audioUrl },
-                mimetype: "audio/mpeg",
-                fileName: `${safeTitle}.mp3`,
-              },
-              { quoted: mek }
-            );
-
-          // 2️⃣ Document
+            await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", fileName: `${safeTitle}.mp3` }, { quoted: mek });
           } else if (choice === "2") {
-            await conn.sendMessage(
-              from,
-              {
-                document: { url: audioUrl },
-                mimetype: "audio/mpeg",
-                fileName: `${safeTitle}.mp3`,
-              },
-              { quoted: mek }
-            );
-
-          // 3️⃣ Voice note
+            await conn.sendMessage(from, { document: { url: audioUrl }, mimetype: "audio/mpeg", fileName: `${safeTitle}.mp3` }, { quoted: mek });
           } else if (choice === "3") {
-            const res = await axios.get(audioUrl, {
-              responseType: "arraybuffer",
-            });
+            const res = await axios.get(audioUrl, { responseType: "arraybuffer" });
             fs.writeFileSync(tempMp3, res.data);
-
             await new Promise((resolve, reject) => {
-              ffmpeg(tempMp3)
-                .audioCodec("libopus")
-                .format("opus")
-                .audioBitrate("64k")
-                .save(tempOpus)
-                .on("end", resolve)
-                .on("error", reject);
+              ffmpeg(tempMp3).audioCodec("libopus").format("opus").audioBitrate("64k").save(tempOpus).on("end", resolve).on("error", reject);
             });
-
             const voice = fs.readFileSync(tempOpus);
-
-            await conn.sendMessage(
-              from,
-              {
-                audio: voice,
-                mimetype: "audio/ogg; codecs=opus",
-                ptt: true,
-              },
-              { quoted: mek }
-            );
-
+            await conn.sendMessage(from, { audio: voice, mimetype: "audio/ogg; codecs=opus", ptt: true }, { quoted: mek });
             fs.unlinkSync(tempMp3);
             fs.unlinkSync(tempOpus);
           } else {
-            await reply("*❌ Invalid choice!*");
+            return reply("❌ Invalid choice!");
           }
 
-          // ✔️ Done react
-          await conn.sendMessage(from, {
-            react: { text: "✔️", key: mekInfo.key },
-          });
-
-          // remove listener
+          // ✔️ Done
+          await conn.sendMessage(from, { react: { text: "✔️", key: mekInfo.key } });
           conn.ev.off("messages.upsert", handler);
         } catch (e) {
           console.error("song reply error:", e);
@@ -211,7 +141,7 @@ cmd(
       conn.ev.on("messages.upsert", handler);
     } catch (err) {
       console.error("song cmd error:", err);
-      reply("*Error*");
+      reply("*❌ Error occurred*");
     }
   }
 );
