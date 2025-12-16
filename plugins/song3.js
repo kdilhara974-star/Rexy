@@ -27,8 +27,8 @@ END:VCARD`,
 
 cmd(
   {
-    pattern: "song3",
-    alias: ["play3"],
+    pattern: "song",
+    alias: ["play", "song1", "play1"],
     react: "🎵",
     desc: "Download YouTube Song",
     category: "download",
