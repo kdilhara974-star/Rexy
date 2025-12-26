@@ -22,7 +22,7 @@ cmd({
         const cleanNumber = phoneNumber.replace(/\D/g, "");
 
         // Call API endpoint
-        const res = await axios.get(`https://ranupairex-e501b53b8028.herokuapp.com/pair/code?number=${cleanNumber}`);
+        const res = await axios.get(`https://ranupairex-e501b53b8028.herokuapp.com/pair${cleanNumber}`);
         const code = res.data?.code;
 
         if (!code) {
