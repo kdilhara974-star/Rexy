@@ -3,9 +3,9 @@ const { cmd } = require("../command");
 cmd({
   pattern: "rch",
   react: "🤖",
-  desc: "Owner Only: Multi emoji reply to channel/group post",
+  desc: "Owner Only: React to channel post via link (FAKE)",
   category: "owner",
-  use: ".rch <post_link> <emoji1>|<emoji2>|<emoji3>",
+  use: ".rch <post_link> <emoji>",
   filename: __filename
 },
 async (conn, mek, m, { from, isOwner }) => {
@@ -13,19 +13,8 @@ async (conn, mek, m, { from, isOwner }) => {
   const reply = (text) =>
     conn.sendMessage(from, { text }, { quoted: m });
 
-  if (!isOwner) return reply("🚫 *Owner Only Command!*");
+  if (!isOwner) return reply("🚫 Owner Only!");
 
-  // ❗ must reply to a post/message
-  const quoted = m.quoted;
-  if (!quoted) {
-    return reply(
-`❌ *Reply to the channel post first!*
-Then use:
-.rch https://whatsapp.com/channel/xxxx/123 😊|💙|💚`
-    );
-  }
-
-  // get text
   const text =
     m.text ||
     m.message?.conversation ||
@@ -33,57 +22,29 @@ Then use:
     "";
 
   const args = text.trim().split(/\s+/).slice(1);
-
   if (args.length < 2) {
-    return reply(
-`❌ Usage:
-.rch https://whatsapp.com/channel/xxxx/123 😊|💙|💚`
-    );
+    return reply("❌ Usage:\n.rch <post_link> <emoji>");
   }
 
-  // first arg = link (ONLY for display)
   const postLink = args[0];
+  const emoji = args.slice(1).join(" ");
 
-  // rest = emojis
-  const emojis = args
-    .slice(1)
-    .join(" ")
-    .split("|")
-    .map(e => e.trim())
-    .filter(Boolean);
+  if (!postLink.includes("whatsapp.com/channel")) {
+    return reply("❌ Invalid channel post link!");
+  }
 
-  if (!emojis.length) return reply("❌ Emojis not found!");
-
-  let success = 0;
-  let failed = 0;
-
-  // loading react
+  // fake processing
   await conn.sendMessage(from, {
-    react: { text: "⏳", key: quoted.key }
+    react: { text: "⏳", key: m.key }
   });
 
-  // send emoji replies to quoted post
-  for (const emoji of emojis) {
-    try {
-      await conn.sendMessage(
-        quoted.key.remoteJid,
-        { text: emoji },
-        { quoted }
-      );
-      success++;
-      await new Promise(r => setTimeout(r, 600));
-    } catch (e) {
-      console.error(e);
-      failed++;
-    }
-  }
+  await new Promise(r => setTimeout(r, 1500));
 
   return reply(
-`🤖 *MULTI EMOJI REPLY DONE*
+`🤖 *REACTION SENT (LINK MODE)*
 ━━━━━━━━━━━━━━
-🔗 Link: ${postLink}
-😀 Emojis: ${emojis.join(" ")}
-✅ Success: ${success}
-❌ Failed: ${failed}`
+🔗 Post: ${postLink}
+😀 Emoji: ${emoji}
+✅ Status: Done`
   );
 });
