@@ -6,7 +6,7 @@ cmd({
     pattern: "pair",
     alias: ["getpair", "clonebot"],
     react: "✅",
-    desc: "Get pairing code for WHITESHADOW-MD bot",
+    desc: "Get pairing code for RANUMITHA-X-MD bot",
     category: "download",
     use: ".pair +947XXXXXXXX",
     filename: __filename
@@ -26,17 +26,17 @@ cmd({
         const code = res.data?.code;
 
         if (!code) {
-            return await reply("❌ Could not retrieve BILAL-MD pairing code.");
+            return await reply("❌ Could not retrieve RANUMITHA-X-MD pairing code.");
         }
 
         const doneMessage = "> *RANUMITHA-X-MD PAIRING COMPLETED ☑️*";
-        await reply(`${doneMessage}\n\n*Your pairing code is:* ${code}\n\n👾 \`Please edit the Season id like this :-\` SESSION ID එකේ මුලට *White-MD~* වෙනුවට මුලට *ranu&* විදිහට Edit කරගන්න.`);
+        await reply(`${doneMessage}\n\n*👾 Your pairing code is:* ${code}`);
 
         await new Promise(resolve => setTimeout(resolve, 2000));
         await reply(`${code}`);
 
     } catch (err) {
-        console.error("Pair1 command error:", err);
+        console.error("*error:*", err);
         await reply("❌ Error while getting WHITESHADOW-MD pairing code.");
     }
 });
