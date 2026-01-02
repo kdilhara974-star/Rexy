@@ -3,7 +3,7 @@ const yts = require('yt-search');
 const axios = require('axios');
 
 cmd({
-    pattern: "video",
+    pattern: "video1",
     react: "🎬",
     desc: "Download YouTube MP4",
     category: "download",
