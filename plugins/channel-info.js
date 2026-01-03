@@ -55,7 +55,9 @@ cmd({
       `🆔 *ID:* ${metadata.id}\n` +
       `📌 *Name:* ${metadata.name}\n` +
       `👥 *Followers:* ${metadata.subscribers?.toLocaleString() || "N/A"}\n` +
-      `📅 *Created on:* ${metadata.creation_time ? new Date(metadata.creation_time * 1000).toLocaleString("id-ID") : "Unknown"}/n/n> © Powerd by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`;
+      `📅 *Created on:* ${metadata.creation_time ? new Date(metadata.creation_time * 1000).toLocaleString("id-ID") : "Unknown"}
+      
+      > © Powerd by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`;
 
     if (metadata.preview) {
       await conn.sendMessage(from, {
