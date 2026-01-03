@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { cmd } = require('../command');
+const { cmd } = require("../command");
 
 // Fake vCard
 const fakevCard = {
@@ -32,8 +32,6 @@ cmd({
 }, async (conn, mek, m, { from, reply, q }) => {
     try {
         if (!q || !q.startsWith("http")) return reply("❌ Please provide a valid Instagram link");
-
-        // ⏳ Processing react
         await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
 
         const apiUrl = `https://api-aswin-sparky.koyeb.app/api/downloader/igdl?url=${encodeURIComponent(q)}`;
@@ -63,51 +61,29 @@ cmd({
 
         const messageID = sentMsg.key.id;
 
-        // 🔁 Listen for reply (SAFE listener)
         const handler = async ({ messages }) => {
             const msg = messages[0];
             if (!msg?.message) return;
 
-            const text =
-                msg.message.conversation ||
-                msg.message.extendedTextMessage?.text;
-
-            const isReply =
-                msg.message.extendedTextMessage?.contextInfo?.stanzaId === messageID;
-
+            const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+            const isReply = msg.message.extendedTextMessage?.contextInfo?.stanzaId === messageID;
             if (!isReply) return;
 
-            // remove listener after use
+            // Remove listener after one use
             conn.ev.off("messages.upsert", handler);
 
-            // ⬇️ Download react
             await conn.sendMessage(from, { react: { text: "⬇️", key: msg.key } });
-
-            // ⬆️ Upload react
             await conn.sendMessage(from, { react: { text: "⬆️", key: msg.key } });
 
-            switch (text.trim()) {
-                case "1":
-                    if (media.type !== "video") return reply("❌ This post has no video");
-                    await conn.sendMessage(from, {
-                        video: { url: media.url },
-                        mimetype: "video/mp4"
-                    }, { quoted: msg });
-                    break;
-
-                case "2":
-                    await conn.sendMessage(from, {
-                        audio: { url: media.url },
-                        mimetype: "audio/mpeg",
-                        ptt: false
-                    }, { quoted: msg });
-                    break;
-
-                default:
-                    return reply("❌ Invalid option");
+            if (text.trim() === "1") {
+                if (media.type !== "video") return reply("❌ This post has no video");
+                await conn.sendMessage(from, { video: { url: media.url }, mimetype: "video/mp4" }, { quoted: msg });
+            } else if (text.trim() === "2") {
+                await conn.sendMessage(from, { audio: { url: media.url }, mimetype: "audio/mpeg", ptt: false }, { quoted: msg });
+            } else {
+                return reply("❌ Invalid option");
             }
 
-            // ✔️ Done react
             await conn.sendMessage(from, { react: { text: "✔️", key: msg.key } });
         };
 
