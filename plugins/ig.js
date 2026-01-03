@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { cmd } = require('../command');
 
-// 🔐 Global session store (menuId -> media + chat)
+// 🔐 Global session store
 global.activeIGMenus = global.activeIGMenus || new Map();
 
 /* ================= IG COMMAND ================= */
@@ -31,7 +31,6 @@ cmd({
       );
       data = res.data;
     } catch {
-      // retry once
       const res = await axios.get(
         `https://api-aswin-sparky.koyeb.app/api/downloader/igdl?url=${encodeURIComponent(q)}`,
         { timeout: 15000 }
@@ -69,7 +68,7 @@ Reply with number 👇
       from
     });
 
-    // 🧹 Auto clear after 10 minutes
+    // 🧹 Auto clear after 10 min
     setTimeout(() => {
       global.activeIGMenus.delete(menuMsg.key.id);
     }, 10 * 60 * 1000);
@@ -88,7 +87,7 @@ cmd({
   try {
     if (!m.message?.extendedTextMessage) return;
 
-    const text = m.message.extendedTextMessage.text;
+    const text = m.message.extendedTextMessage.text?.trim();
     const ctx = m.message.extendedTextMessage.contextInfo;
     if (!ctx?.stanzaId) return;
 
@@ -96,6 +95,13 @@ cmd({
     if (!session) return;
 
     const { media, from } = session;
+
+    // ❌ INVALID OPTION CHECK
+    if (text !== "1" && text !== "2") {
+      return conn.sendMessage(from, {
+        text: "❌ *Invalid option!*\n\nReply with:\n1️⃣ HD Video\n2️⃣ Audio (MP3)"
+      }, { quoted: m });
+    }
 
     // ⬇️ Downloading
     await conn.sendMessage(from, {
@@ -109,23 +115,24 @@ cmd({
       react: { text: "⬆️", key: m.key }
     });
 
-    if (text.trim() === "1") {
-      if (media.type !== "video") return;
+    if (text === "1") {
+      if (media.type !== "video") {
+        return conn.sendMessage(from, {
+          text: "⚠️ Video nathi post ekak"
+        }, { quoted: m });
+      }
 
       await conn.sendMessage(from, {
         video: { url: media.url },
         caption: "✅ Video Ready"
       }, { quoted: m });
 
-    } else if (text.trim() === "2") {
+    } else if (text === "2") {
 
       await conn.sendMessage(from, {
         audio: { url: media.url },
         mimetype: "audio/mp4"
       }, { quoted: m });
-
-    } else {
-      return;
     }
 
     // ✔️ Sent
