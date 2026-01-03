@@ -46,15 +46,17 @@ cmd({
     // Reaction: Converting
     await conn.sendMessage(from, { react: { text: "⬆️", key: mek.key } });
 
-    // -------- CONVERT TO VIDEO NOTE ----------------
+    // -------- CONVERT TO WHATSAPP VIDEO NOTE ----------------
     await new Promise((resolve, reject) => {
       ffmpeg(tempPath)
         .outputOptions([
-          "-vf scale=480:480:force_original_aspect_ratio=decrease,pad=480:480:(ow-iw)/2:(oh-ih)/2", // scale + pad to 1:1
           "-t 16", // max 16 seconds
+          "-vf scale=480:480:force_original_aspect_ratio=decrease,pad=480:480:(ow-iw)/2:(oh-ih)/2", // scale + pad to square
           "-c:v libx264",
           "-preset ultrafast",
-          "-pix_fmt yuv420p",
+          "-c:a aac",
+          "-b:a 64k",
+          "-pix_fmt yuv420p"
         ])
         .format("mp4")
         .on("end", resolve)
@@ -68,7 +70,7 @@ cmd({
     await conn.sendMessage(from, {
       video: noteBuffer,
       mimetype: "video/mp4",
-      ptv: true,
+      ptv: true, // ensures circular video note
     });
 
     // Reaction: Done
