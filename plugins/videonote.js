@@ -1,100 +1,42 @@
 const { cmd } = require("../command");
-const fetch = require("node-fetch");
-const fs = require("fs");
-const path = require("path");
-const ffmpeg = require("fluent-ffmpeg");
 
 cmd({
   pattern: "ptv",
-  alias: ["videoNote"],
-  desc: "Convert replied video or URL to WhatsApp PTV Video Note",
+  alias: ["videonote"],
+  desc: "Send replied video as WhatsApp Video Note (PTV)",
   category: "owner",
-  react: "🎬",
-  use: ".ptv <reply/video/url>",
+  react: "🎥",
+  use: ".ptv (reply to video)",
   filename: __filename,
-}, async (conn, mek, m, { from, reply, q }) => {
+}, async (conn, mek, m, { from, reply }) => {
   try {
-    let mediaBuffer;
 
-    // -------- IF USER REPLIED TO VIDEO -----------
-    if (m.quoted) {
-      let type = m.quoted.mtype;
-
-      if (type === "videoMessage") {
-        mediaBuffer = await m.quoted.download();
-      } else {
-        return reply("⚠️ *Please reply to a video!*");
-      }
+    // must reply to a video
+    if (!m.quoted || m.quoted.mtype !== "videoMessage") {
+      return reply("⚠️ *Video ekakata reply karanna*");
     }
 
-    // -------- IF PROVIDED VIDEO URL -----------------------
-    else if (q) {
-      const videoUrl = q.trim();
-      const videoRes = await fetch(videoUrl);
-      if (!videoRes.ok) throw new Error("Invalid video URL");
-      mediaBuffer = Buffer.from(await videoRes.arrayBuffer());
-    } 
-    
-    else {
-      return reply("⚠️ *Reply to a video or give me a URL!*");
-    }
-
-    // Reaction: Downloading
-    await conn.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
-
-    const tempPath = path.join(__dirname, `../temp/${Date.now()}.mp4`);
-    const ptvPath = path.join(__dirname, `../temp/${Date.now()}_ptv.mp4`);
-
-    fs.writeFileSync(tempPath, mediaBuffer);
-
-    // Reaction: Converting
-    await conn.sendMessage(from, { react: { text: "⬆️", key: mek.key } });
-
-    // -------- CONVERT TO PTV (CIRCULAR VIDEO NOTE) ----------------
-    await new Promise((resolve, reject) => {
-      ffmpeg(tempPath)
-        .size("360x360") // resize to square
-        .videoFilters([
-          {
-            filter: "crop",
-            options: "min(iw\,ih):min(iw\,ih)"
-          },
-          {
-            filter: "format",
-            options: "yuva420p"
-          },
-          {
-            filter: "geq",
-            options: "lum='lum(X,Y)':a='if(gt(pow(X-180,2)+pow(Y-180,2),180*180),0,255)'"
-          }
-        ])
-        .videoCodec("libx264")
-        .format("mp4")
-        .outputOptions("-movflags +faststart")
-        .on("end", resolve)
-        .on("error", reject)
-        .save(ptvPath);
-    });
-
-    const ptvBuffer = fs.readFileSync(ptvPath);
-
-    // SEND WHATSAPP PTV
+    // react
     await conn.sendMessage(from, {
-      video: ptvBuffer,
-      mimetype: "video/mp4",
-      ptv: true, // Treat as video note
+      react: { text: "⬆️", key: mek.key }
     });
 
-    // Reaction: Done
-    await conn.sendMessage(from, { react: { text: "✔️", key: mek.key } });
+    // download original video
+    const videoBuffer = await m.quoted.download();
 
-    // Cleanup
-    fs.unlinkSync(tempPath);
-    fs.unlinkSync(ptvPath);
+    // send as PTV (video note)
+    await conn.sendMessage(from, {
+      video: videoBuffer,
+      mimetype: "video/mp4",
+      ptv: true, // ⭐ THIS IS THE MAGIC
+    });
 
-  } catch (err) {
-    console.error(err);
-    await conn.sendMessage(from, { react: { text: "🎬", key: mek.key } });
-    reply("*Error*");
+    await conn.sendMessage(from, {
+      react: { text: "✔️", key: mek.key }
+    });
+
+  } catch (e) {
+    console.error(e);
+    reply("❌ PTV send fail una");
   }
 });
