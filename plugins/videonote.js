@@ -44,7 +44,6 @@ cmd({
 
     const tempPath = path.join(__dirname, `../temp/${Date.now()}.mp4`);
     const ptvPath = path.join(__dirname, `../temp/${Date.now()}_ptv.mp4`);
-
     fs.writeFileSync(tempPath, mediaBuffer);
 
     // Reaction: Converting
@@ -53,30 +52,41 @@ cmd({
     // -------- CONVERT TO WHATSAPP-COMPATIBLE VIDEO NOTE ----------------
     await new Promise((resolve, reject) => {
       ffmpeg(tempPath)
-        .videoCodec("libx264")           // H.264 video
-        .audioCodec("aac")               // AAC audio
-        .size("360x360")                 // Square 360x360
+        .inputOptions('-y') // overwrite
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .size('360x360') // resize to square
+        .aspect('1:1') // ensure 1:1 ratio
         .outputOptions([
-          "-profile:v baseline",         // baseline H.264 for WhatsApp
-          "-pix_fmt yuv420p",            // pixel format
-          "-movflags +faststart",        // make MP4 streamable
-          "-preset veryfast",            // encoding speed
-          "-r 25",                       // frame rate
-          "-shortest"                    // match audio duration
+          '-profile:v baseline', 
+          '-level 3.0',
+          '-pix_fmt yuv420p', 
+          '-movflags +faststart', 
+          '-preset veryfast', 
+          '-r 25', // fps
+          '-shortest'
         ])
-        .format("mp4")
-        .on("end", resolve)
-        .on("error", reject)
+        .format('mp4')
+        .on('end', resolve)
+        .on('error', reject)
         .save(ptvPath);
     });
 
+    // Ensure file is fully written
+    if (!fs.existsSync(ptvPath)) throw new Error('PTV conversion failed');
+
     const ptvBuffer = fs.readFileSync(ptvPath);
+
+    // Check file size (<16MB)
+    if (ptvBuffer.length > 16 * 1024 * 1024) {
+      return reply('⚠️ File too large for WhatsApp Video Note (~16MB max)');
+    }
 
     // SEND WHATSAPP PTV
     await conn.sendMessage(from, {
       video: ptvBuffer,
-      mimetype: "video/mp4",
-      ptt: true, // Video note
+      mimetype: 'video/mp4',
+      ptt: true,
     });
 
     // Reaction: Done
@@ -89,6 +99,6 @@ cmd({
   } catch (err) {
     console.error(err);
     await conn.sendMessage(from, { react: { text: "🎬", key: mek.key } });
-    reply("*Error*");
+    reply(`*Error:* ${err.message}`);
   }
 });
