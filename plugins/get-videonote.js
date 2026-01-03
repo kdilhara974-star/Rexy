@@ -39,13 +39,11 @@ cmd({
         .save(output);
     });
 
-    const video = fs.readFileSync(output);
-
-    // 🔥 PTV (NOT PTT)
+    // 🔥 PTV SEND (EXACT LIKE YOUR SAMPLE)
     await conn.sendMessage(from, {
-      video,
+      video: fs.readFileSync(output),
       mimetype: "video/mp4",
-      videoNote: true, // ✅ THIS IS PTV
+      ptv: true, // ✅ THIS IS THE MAGIC
     }, { quoted: mek });
 
     fs.unlinkSync(input);
