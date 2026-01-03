@@ -34,7 +34,7 @@ cmd({
       return conn.sendMessage(from, { text: "*❌ Please provide a valid Instagram URL*" }, { quoted: m });
     }
 
-    await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
+    await conn.sendMessage(from, { react: { text: '📽️', key: m.key } });
 
     const apiUrl = `https://api-aswin-sparky.koyeb.app/api/downloader/igdl?url=${encodeURIComponent(q)}`;
     const response = await axios.get(apiUrl);
@@ -53,7 +53,7 @@ cmd({
 
 💬 *Reply with your choice:*
 
- 1️⃣ Video Type 🎥
+ 1️⃣ Video Type 📽️
  2️⃣ Audio only 🎶
 
 > © Powered by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`;
