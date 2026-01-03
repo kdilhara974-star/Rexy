@@ -5,84 +5,90 @@ const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
 
 cmd({
-  pattern: "getvideonote",
-  alias: ["gvn"],
-  desc: "Convert replied video or URL to WhatsApp Video Note",
+  pattern: "ptv",
+  alias: ["videoNote"],
+  desc: "Convert replied video or URL to WhatsApp PTV Video Note",
   category: "owner",
   react: "🎬",
-  use: ".gvn <reply/video/url>",
+  use: ".ptv <reply/video/url>",
   filename: __filename,
 }, async (conn, mek, m, { from, reply, q }) => {
   try {
-    let videoBuffer;
+    let mediaBuffer;
 
     // -------- IF USER REPLIED TO VIDEO -----------
     if (m.quoted) {
       let type = m.quoted.mtype;
+
       if (type === "videoMessage") {
-        videoBuffer = await m.quoted.download();
+        mediaBuffer = await m.quoted.download();
       } else {
         return reply("⚠️ *Please reply to a video!*");
       }
     }
+
     // -------- IF PROVIDED VIDEO URL -----------------------
     else if (q) {
       const videoUrl = q.trim();
       const videoRes = await fetch(videoUrl);
       if (!videoRes.ok) throw new Error("Invalid video URL");
-      videoBuffer = Buffer.from(await videoRes.arrayBuffer());
-    } else {
-      return reply("⚠️ *Reply to a video or provide a URL!*");
+      mediaBuffer = Buffer.from(await videoRes.arrayBuffer());
+    } 
+    
+    else {
+      return reply("⚠️ *Reply to a video or give me a URL!*");
     }
 
     // Reaction: Downloading
     await conn.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
 
-    // TEMP PATHS
     const tempPath = path.join(__dirname, `../temp/${Date.now()}.mp4`);
-    const notePath = path.join(__dirname, `../temp/${Date.now()}_note.mp4`);
-    fs.writeFileSync(tempPath, videoBuffer);
+    const ptvPath = path.join(__dirname, `../temp/${Date.now()}_ptv.mp4`);
+
+    fs.writeFileSync(tempPath, mediaBuffer);
 
     // Reaction: Converting
     await conn.sendMessage(from, { react: { text: "⬆️", key: mek.key } });
 
-    // -------- CONVERT TO WHATSAPP VIDEO NOTE ----------------
+    // -------- CONVERT TO WHATSAPP-COMPATIBLE VIDEO NOTE ----------------
     await new Promise((resolve, reject) => {
       ffmpeg(tempPath)
+        .videoCodec("libx264")           // H.264 video
+        .audioCodec("aac")               // AAC audio
+        .size("360x360")                 // Square 360x360
         .outputOptions([
-          "-t 16", // max 16 seconds
-          "-vf scale=480:480:force_original_aspect_ratio=decrease,pad=480:480:(ow-iw)/2:(oh-ih)/2", // square
-          "-c:v libx264",
-          "-preset ultrafast",
-          "-c:a aac",
-          "-b:a 64k",
-          "-pix_fmt yuv420p"
+          "-profile:v baseline",         // baseline H.264 for WhatsApp
+          "-pix_fmt yuv420p",            // pixel format
+          "-movflags +faststart",        // make MP4 streamable
+          "-preset veryfast",            // encoding speed
+          "-r 25",                       // frame rate
+          "-shortest"                    // match audio duration
         ])
         .format("mp4")
         .on("end", resolve)
         .on("error", reject)
-        .save(notePath);
+        .save(ptvPath);
     });
 
-    const noteBuffer = fs.readFileSync(notePath);
+    const ptvBuffer = fs.readFileSync(ptvPath);
 
-    // SEND WHATSAPP VIDEO NOTE
+    // SEND WHATSAPP PTV
     await conn.sendMessage(from, {
-      video: noteBuffer,
+      video: ptvBuffer,
       mimetype: "video/mp4",
-      ptv: true, // circular video note
+      ptt: true, // Video note
     });
 
     // Reaction: Done
     await conn.sendMessage(from, { react: { text: "✔️", key: mek.key } });
 
-    // CLEANUP
+    // Cleanup
     fs.unlinkSync(tempPath);
-    fs.unlinkSync(notePath);
+    fs.unlinkSync(ptvPath);
 
   } catch (err) {
     console.error(err);
     await conn.sendMessage(from, { react: { text: "🎬", key: mek.key } });
-    reply("*Error sending video note*");
+    reply("*Error*");
   }
 });
