@@ -32,7 +32,7 @@ END:VCARD`,
 cmd(
   {
     pattern: "song5",
-    alias: [ "play5"],
+    alias: ["play5"],
     react: "🎵",
     desc: "YouTube song downloader (Audio) via Ominisave API",
     category: "download",
@@ -162,7 +162,7 @@ cmd(
           // Listener ඉවත් කරන්න
           conn.ev.off("messages.upsert", handler);
 
-          // Download reaction
+          // Download reaction (reply එකටම)
           await conn.sendMessage(from, {
             react: { text: "⬇️", key: mekInfo.key },
           });
@@ -175,6 +175,8 @@ cmd(
           const tempPath = path.join(tempDir, `${Date.now()}.mp3`);
           const voicePath = path.join(tempDir, `${Date.now()}.opus`);
 
+          // **මෙතන වෙනස්කම්: reply එකටම file යැවීම**
+          
           // Option 1: Audio
           if (choice === "1" || choice === "1️⃣") {
             await conn.sendMessage(
@@ -184,7 +186,7 @@ cmd(
                 mimetype: "audio/mpeg",
                 fileName: audioFileName,
               },
-              { quoted: mek }
+              { quoted: mekInfo } // මෙතන වෙනස: mekInfo (reply message) ට quote කරයි
             );
 
           // Option 2: Document
@@ -197,7 +199,7 @@ cmd(
                 fileName: audioFileName,
                 caption: title,
               },
-              { quoted: mek }
+              { quoted: mekInfo } // මෙතන වෙනස: mekInfo (reply message) ට quote කරයි
             );
 
           // Option 3: Voice Note
@@ -227,7 +229,7 @@ cmd(
                 mimetype: "audio/ogg; codecs=opus",
                 ptt: true,
               },
-              { quoted: mek }
+              { quoted: mekInfo } // මෙතන වෙනස: mekInfo (reply message) ට quote කරයි
             );
 
             // Cleanup
@@ -239,12 +241,12 @@ cmd(
             return;
           }
 
-          // Upload reaction
+          // Upload reaction (reply එකටම)
           await conn.sendMessage(from, {
             react: { text: "⬆️", key: mekInfo.key },
           });
 
-          // Success reaction
+          // Success reaction (reply එකටම)
           setTimeout(async () => {
             await conn.sendMessage(from, {
               react: { text: "✔️", key: mekInfo.key },
