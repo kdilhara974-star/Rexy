@@ -160,7 +160,7 @@ cmd(
           const choice = userText?.trim();
 
           // Listener ඉවත් කරන්න
-          conn.ev.off("messages.upsert", handler);
+          
 
           // Download reaction (reply එකටම)
           await conn.sendMessage(from, {
