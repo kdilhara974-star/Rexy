@@ -229,6 +229,8 @@ cmd(
         }
       };
 
+      conn.ev.on("messages.upsert", handler);
+
       
     } catch (err) {
       console.error(err);
