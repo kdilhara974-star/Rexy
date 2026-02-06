@@ -52,65 +52,75 @@ cmd({
             query = `https://www.youtube.com/watch?v=${videoId}`;
         }
 
-        // 3️⃣ YouTube search
-        const search = await yts(query);
-        if (!search.videos.length) return reply("*❌ No results found.*");
+        // 3️⃣ YouTube search (if query is not a URL)
+        let ytUrl = query;
+        let data = null;
+        
+        if (!query.includes("youtube.com") && !query.includes("youtu.be")) {
+            const search = await yts(query);
+            if (!search.videos.length) return reply("*❌ No results found.*");
+            data = search.videos[0];
+            ytUrl = data.url;
+        } else {
+            // If it's a direct URL, get video info
+            const search = await yts({ videoId: ytUrl.split('v=')[1]?.split('&')[0] || ytUrl.split('/').pop() });
+            data = search;
+        }
 
-        const data = search.videos[0];
-        const ytUrl = data.url;
-        const videoId = ytUrl.split('v=')[1]?.split('&')[0];
+        // 4️⃣ Movanest API endpoint - Updated with different quality options
+        const movanestAPI = (url, quality) => {
+            return `https://www.movanest.xyz/v2/ytdl2?input=${encodeURIComponent(url)}&format=video&quality=${quality}`;
+        };
 
-        // 5️⃣ Send selection menu (image + caption)
+        // 5️⃣ Quality options for Movanest API
+        const qualityOptions = {
+            "144p": "144p",
+            "240p": "240p", 
+            "360p": "360p",
+            "480p": "480p",
+            "720p": "720p",
+            "1080p": "1080p"
+        };
+
+        // 6️⃣ Send selection menu
         const caption = `
 *📽️ RANUMITHA-X-MD VIDEO DOWNLOADER 🎥*
 
-*🎵 \`Title:\`* ${data.title}
-*⏱️ \`Duration:\`* ${data.timestamp}
-*📆 \`Uploaded:\`* ${data.ago}
-*📊 \`Views:\`* ${data.views}
-*🔗 \`Link:\`* ${data.url}
+*🎵 Title:* ${data?.title || "YouTube Video"}
+${data?.timestamp ? `*⏱️ Duration:* ${data.timestamp}` : ''}
+${data?.ago ? `*📆 Uploaded:* ${data.ago}` : ''}
+${data?.views ? `*📊 Views:* ${data.views}` : ''}
+*🔗 Link:* ${ytUrl}
 
-🔢 *Reply Below Number*
+🔢 *Select Quality (Reply with number):*
 
-🎬 *Video FILE 📽️*
-1️⃣ 144p Quality 🎬
-2️⃣ 240p Quality 🎬
-3️⃣ 360p Quality 🎬
-4️⃣ 480p Quality 🎬
-5️⃣ 720p Quality 🎬
-6️⃣ 1080p Quality 🎬
+1️⃣ *Video Format (MP4)*
+   1.1 - 144p Quality
+   1.2 - 240p Quality  
+   1.3 - 360p Quality
+   1.4 - 480p Quality
+   1.5 - 720p Quality
+   1.6 - 1080p Quality
 
-📂 *Document FILE 📂*
-7️⃣ 144p Quality 📂
-8️⃣ 240p Quality 📂
-9️⃣ 360p Quality 📂
-🔟 480p Quality 📂
-1️⃣1️⃣ 720p Quality 📂
-1️⃣2️⃣ 1080p Quality 📂
-
-> *For WhatsApp Compatible Videos, use options 3, 4, 5*
+2️⃣ *Document Format (MP4)*
+   2.1 - 144p Quality
+   2.2 - 240p Quality
+   2.3 - 360p Quality
+   2.4 - 480p Quality
+   2.5 - 720p Quality
+   2.6 - 1080p Quality
 
 > © Powered by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`;
 
         const sentMsg = await conn.sendMessage(from, {
-            image: { url: data.thumbnail },
+            image: { url: data?.thumbnail || "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" },
             caption
         }, { quoted: fakevCard });
 
         const messageID = sentMsg.key.id;
 
-        // WhatsApp Compatible API URLs
-        const whatsappApis = {
-            "144": `https://api.vevioz.com/api/button/mp4/${videoId}`,
-            "240": `https://api.vevioz.com/api/button/mp4/${videoId}`,
-            "360": `https://api.vevioz.com/api/button/mp4/${videoId}`,
-            "480": `https://api.vevioz.com/api/button/mp4/${videoId}`,
-            "720": `https://api.vevioz.com/api/button/mp4/${videoId}`,
-            "1080": `https://api.vevioz.com/api/button/mp4/${videoId}`
-        };
-
-        // 6️⃣ Listen for user replies
-        conn.ev.on("messages.upsert", async (msgData) => {
+        // 7️⃣ Listen for user replies
+        const replyHandler = async (msgData) => {
             const receivedMsg = msgData.messages[0];
             if (!receivedMsg?.message) return;
 
@@ -122,166 +132,106 @@ cmd({
             const isReplyToBot =
                 receivedMsg.message.extendedTextMessage?.contextInfo?.stanzaId === messageID;
 
-            if (isReplyToBot) {
-                const option = receivedText.trim();
-                let quality = "";
-                let isDocument = false;
+            if (isReplyToBot && senderID === from) {
+                // Remove event listener to prevent multiple triggers
+                conn.ev.off("messages.upsert", replyHandler);
 
-                // Quality mapping based on option
-                switch (option) {
-                    case "1": quality = "144"; break;
-                    case "2": quality = "240"; break;
-                    case "3": quality = "360"; break;
-                    case "4": quality = "480"; break;
-                    case "5": quality = "720"; break;
-                    case "6": quality = "1080"; break;
-                    case "7": quality = "144"; isDocument = true; break;
-                    case "8": quality = "240"; isDocument = true; break;
-                    case "9": quality = "360"; isDocument = true; break;
-                    case "10": quality = "480"; isDocument = true; break;
-                    case "11": quality = "720"; isDocument = true; break;
-                    case "12": quality = "1080"; isDocument = true; break;
+                let selectedQuality, isDocument = false;
+                let qualityKey = "";
+
+                switch (receivedText.trim()) {
+                    case "1.1": selectedQuality = "144p"; qualityKey = "144p"; break;
+                    case "1.2": selectedQuality = "240p"; qualityKey = "240p"; break;
+                    case "1.3": selectedQuality = "360p"; qualityKey = "360p"; break;
+                    case "1.4": selectedQuality = "480p"; qualityKey = "480p"; break;
+                    case "1.5": selectedQuality = "720p"; qualityKey = "720p"; break;
+                    case "1.6": selectedQuality = "1080p"; qualityKey = "1080p"; break;
+                    case "2.1": selectedQuality = "144p"; qualityKey = "144p"; isDocument = true; break;
+                    case "2.2": selectedQuality = "240p"; qualityKey = "240p"; isDocument = true; break;
+                    case "2.3": selectedQuality = "360p"; qualityKey = "360p"; isDocument = true; break;
+                    case "2.4": selectedQuality = "480p"; qualityKey = "480p"; isDocument = true; break;
+                    case "2.5": selectedQuality = "720p"; qualityKey = "720p"; isDocument = true; break;
+                    case "2.6": selectedQuality = "1080p"; qualityKey = "1080p"; isDocument = true; break;
                     default:
-                        return reply("*❌ Invalid option! Please choose 1-12.*");
+                        await conn.sendMessage(senderID, { 
+                            text: "*❌ Invalid option! Please reply with a valid number (e.g., 1.1, 2.3, etc.)*" 
+                        }, { quoted: receivedMsg });
+                        return;
                 }
 
-                // React ⬇️ when download starts
-                await conn.sendMessage(senderID, { react: { text: '⬇️', key: receivedMsg.key } });
-
                 try {
-                    // WhatsApp Compatible API භාවිතා කරන්න (Vevioz API)
-                    const apiUrl = whatsappApis[quality];
-                    const { data: apiRes } = await axios.get(apiUrl, {
-                        timeout: 30000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
+                    // React ⬇️ when download starts
+                    await conn.sendMessage(senderID, { 
+                        react: { text: '⬇️', key: receivedMsg.key } 
                     });
 
-                    let downloadUrl = null;
-                    let fileName = `${data.title.replace(/[^\w\s]/gi, '')} - ${quality}p.mp4`;
+                    // Send processing message
+                    await conn.sendMessage(senderID, { 
+                        text: `*📥 Downloading ${selectedQuality} quality... Please wait!*` 
+                    }, { quoted: receivedMsg });
 
-                    // Extract download URL from API response
-                    if (apiRes && typeof apiRes === 'object') {
-                        // Try different response formats
-                        if (apiRes[quality]) {
-                            downloadUrl = apiRes[quality];
-                        } else if (apiRes.download) {
-                            downloadUrl = apiRes.download;
-                        } else if (apiRes.url) {
-                            downloadUrl = apiRes.url;
-                        } else if (apiRes.result?.url) {
-                            downloadUrl = apiRes.result.url;
-                            fileName = apiRes.result.filename || fileName;
-                        }
+                    // Call Movanest API
+                    const apiUrl = movanestAPI(ytUrl, qualityOptions[qualityKey]);
+                    const { data: apiRes } = await axios.get(apiUrl);
+
+                    if (!apiRes?.status || !apiRes?.results?.success) {
+                        await conn.sendMessage(senderID, { react: { text: '❌', key: receivedMsg.key } });
+                        await conn.sendMessage(senderID, { 
+                            text: `❌ Unable to download ${selectedQuality} version. Try another quality!` 
+                        }, { quoted: receivedMsg });
+                        return;
                     }
 
-                    if (!downloadUrl) {
-                        throw new Error("Download URL not found");
-                    }
-
+                    const downloadUrl = apiRes.results.recommended.dlurl;
+                    const videoTitle = apiRes.results.title || data?.title || "YouTube_Video";
+                    
                     // React ⬆️ before uploading
-                    await conn.sendMessage(senderID, { react: { text: '⬆️', key: receivedMsg.key } });
+                    await conn.sendMessage(senderID, { 
+                        react: { text: '⬆️', key: receivedMsg.key } 
+                    });
 
-                    // WhatsApp තුළ ආරෝපණය කරන්න
+                    // Send uploading message
+                    await conn.sendMessage(senderID, { 
+                        text: `*📤 Uploading ${selectedQuality} quality...*` 
+                    }, { quoted: receivedMsg });
+
                     if (isDocument) {
-                        // Document ලෙස යවන්න
                         await conn.sendMessage(senderID, {
                             document: { url: downloadUrl },
                             mimetype: "video/mp4",
-                            fileName: fileName,
-                            caption: `*${data.title}*\n📊 Quality: ${quality}p\n⏱️ Duration: ${data.timestamp}\n📁 Sent as Document`
+                            fileName: `${videoTitle.replace(/[^\w\s]/gi, '')}_${qualityKey}.mp4`
                         }, { quoted: receivedMsg });
                     } else {
-                        // Video ලෙස යවන්න (WhatsApp Compatible)
                         await conn.sendMessage(senderID, {
                             video: { url: downloadUrl },
                             mimetype: "video/mp4",
-                            caption: `*${data.title}*\n📊 Quality: ${quality}p\n⏱️ Duration: ${data.timestamp}\n✅ WhatsApp Compatible`,
-                            // WhatsApp compatible settings
+                            caption: `*${videoTitle}*\n*Quality:* ${selectedQuality}\n*Format:* MP4`,
                             ptt: false,
-                            gifPlayback: false,
-                            seconds: data.duration?.seconds || 300
                         }, { quoted: receivedMsg });
                     }
 
                     // React ✅ after upload complete
-                    await conn.sendMessage(senderID, { react: { text: '✅', key: receivedMsg.key } });
+                    await conn.sendMessage(senderID, { 
+                        react: { text: '✅', key: receivedMsg.key } 
+                    });
 
                 } catch (error) {
                     console.error("Download Error:", error);
-                    
-                    // Fallback to alternative APIs
-                    try {
-                        await conn.sendMessage(senderID, { react: { text: '🔄', key: receivedMsg.key } });
-                        
-                        // Try alternative API 1
-                        const altApi1 = `https://ytdl.samirdev.xyz/api?url=${encodeURIComponent(ytUrl)}&quality=${quality}`;
-                        const { data: altRes1 } = await axios.get(altApi1);
-                        
-                        if (altRes1?.url) {
-                            await conn.sendMessage(senderID, { react: { text: '⬆️', key: receivedMsg.key } });
-                            
-                            if (isDocument) {
-                                await conn.sendMessage(senderID, {
-                                    document: { url: altRes1.url },
-                                    mimetype: "video/mp4",
-                                    fileName: `${data.title} - ${quality}p.mp4`,
-                                    caption: `*${data.title}*\n📊 Quality: ${quality}p (Alternative API)`
-                                }, { quoted: receivedMsg });
-                            } else {
-                                await conn.sendMessage(senderID, {
-                                    video: { url: altRes1.url },
-                                    mimetype: "video/mp4",
-                                    caption: `*${data.title}*\n📊 Quality: ${quality}p\n⏱️ Duration: ${data.timestamp}\n🔧 Alternative API`,
-                                    ptt: false,
-                                    gifPlayback: false
-                                }, { quoted: receivedMsg });
-                            }
-                            
-                            await conn.sendMessage(senderID, { react: { text: '✅', key: receivedMsg.key } });
-                            return;
-                        }
-                        
-                        // Try alternative API 2
-                        const altApi2 = `https://api.dlyoutube.com/api/button/mp4/${videoId}`;
-                        const { data: altRes2 } = await axios.get(altApi2);
-                        
-                        if (altRes2 && altRes2[quality]) {
-                            await conn.sendMessage(senderID, { react: { text: '⬆️', key: receivedMsg.key } });
-                            
-                            if (isDocument) {
-                                await conn.sendMessage(senderID, {
-                                    document: { url: altRes2[quality] },
-                                    mimetype: "video/mp4",
-                                    fileName: `${data.title} - ${quality}p.mp4`
-                                }, { quoted: receivedMsg });
-                            } else {
-                                await conn.sendMessage(senderID, {
-                                    video: { url: altRes2[quality] },
-                                    mimetype: "video/mp4",
-                                    caption: `*${data.title}*\n📊 Quality: ${quality}p\n⏱️ Duration: ${data.timestamp}`,
-                                    ptt: false,
-                                    gifPlayback: false
-                                }, { quoted: receivedMsg });
-                            }
-                            
-                            await conn.sendMessage(senderID, { react: { text: '✅', key: receivedMsg.key } });
-                            return;
-                        }
-                        
-                        // All APIs failed
-                        await conn.sendMessage(senderID, { react: { text: '❌', key: receivedMsg.key } });
-                        reply("❌ All download methods failed. The video may not be available or too large for WhatsApp.");
-                        
-                    } catch (fallbackError) {
-                        console.error("Fallback Error:", fallbackError);
-                        await conn.sendMessage(senderID, { react: { text: '❌', key: receivedMsg.key } });
-                        reply("❌ Download failed. Please try a different video or quality.");
-                    }
+                    await conn.sendMessage(senderID, { react: { text: '❌', key: receivedMsg.key } });
+                    await conn.sendMessage(senderID, { 
+                        text: "❌ Download failed! The video might be restricted or the API is currently unavailable." 
+                    }, { quoted: receivedMsg });
                 }
             }
-        });
+        };
+
+        // Add event listener for replies
+        conn.ev.on("messages.upsert", replyHandler);
+
+        // Set timeout to remove listener after 2 minutes
+        setTimeout(() => {
+            conn.ev.off("messages.upsert", replyHandler);
+        }, 120000);
 
     } catch (error) {
         console.error("Video Command Error:", error);
