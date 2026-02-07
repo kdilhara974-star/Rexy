@@ -2,7 +2,7 @@ const { cmd } = require('../command');
 const axios = require('axios');
 
 // Fake VCard
-        const FakeVCard = {
+        const fakeVCard = {
       key: {
         fromMe: false,
         participant: "0@s.whatsapp.net",
