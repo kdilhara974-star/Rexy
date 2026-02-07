@@ -2,7 +2,7 @@ const { cmd } = require('../command');
 const axios = require('axios');
 
 // Fake VCard
-        const fakevCard = {
+        const FakeVCard = {
       key: {
         fromMe: false,
         participant: "0@s.whatsapp.net",
@@ -44,7 +44,7 @@ ${data.result}
         await conn.sendMessage(
             from,
             { text: responseMsg },
-            { quoted: fakevCard }
+            { quoted: FakeVCard }
         );
 
         await react("✅");
