@@ -1,6 +1,27 @@
 const axios = require("axios");
 const { cmd } = require("../command");
 
+// Fake ChatGPT vCard
+const fakevCard = {
+    key: {
+        fromMe: false,
+        participant: "0@s.whatsapp.net",
+        remoteJid: "status@broadcast"
+    },
+    message: {
+        contactMessage: {
+            displayName: "© Mr Hiruka",
+            vcard: `BEGIN:VCARD
+VERSION:3.0
+FN:Meta
+ORG:META AI;
+TEL;type=CELL;type=VOICE;waid=94762095304:+94762095304
+END:VCARD`
+        }
+    }
+};
+
+
 cmd(
   {
     pattern: "tiktok",
@@ -50,7 +71,7 @@ cmd(
       const sentMsg = await conn.sendMessage(
         from,
         { image: { url: dat.thumbnail }, caption },
-        { quoted: mek }
+        { quoted: fakevCard }
       );
 
       const menuMsgId = sentMsg.key.id;
@@ -181,7 +202,7 @@ cmd(
           image: { url: thumbnail },
           caption,
         },
-        { quoted: mek }
+        { quoted: fakevCard }
       );
 
       const menuMsgId = sentMsg.key.id;
