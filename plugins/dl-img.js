@@ -21,6 +21,7 @@ END:VCARD`
     }
 };
 
+
 cmd({
     pattern: "img",
     react: "🖼️",
@@ -35,19 +36,24 @@ cmd({
             return reply("🖼️ Please provide a search query\nExample: .img cute cats");
         }
 
-        await reply(`🔍 Searching images for *"${query}"*...`);
+        await reply(`🔍 Searching images for *"${query}"*...`), { quoted: fakevCard };
 
-        const url = `https://malvin-api.vercel.app/search/gimage?q=${encodeURIComponent(query)}`;
-        const response = await axios.get(url);
+        const api = `https://malvin-api.vercel.app/search/gimage?q=${encodeURIComponent(query)}`;
+        const { data } = await axios.get(api);
 
-        if (!response.data?.success || !response.data.results?.length) {
+        // Check response validity
+        if (!data?.status || !Array.isArray(data.result) || data.result.length === 0) {
             return reply("❌ No images found. Try different keywords.");
         }
 
-        const results = response.data.results;
+        // Extract URLs
+        const images = data.result.map(img => img.url);
 
-        const selectedImages = results
-            .sort(() => 0.5 - Math.random())
+        await reply(`✅ Found *${images.length}* results for *"${query}"*. Sending top 5...`);
+
+        // Shuffle & pick 5
+        const selectedImages = images
+            .sort(() => Math.random() - 0.5)
             .slice(0, 5);
 
         for (const imageUrl of selectedImages) {
@@ -59,17 +65,17 @@ cmd({
                         caption: `📷 Result for: *${query}*\n> © Powerd by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`,
                         contextInfo: { mentionedJid: [m.sender] }
                     },
-                    { quoted: fakevCard }
+                    { quoted: mek }
                 );
             } catch (err) {
                 console.warn(`⚠️ Failed to send image: ${imageUrl}`);
             }
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(res => setTimeout(res, 1000)); // small delay
         }
 
     } catch (error) {
-        console.error('Image Search Error:', error);
+        console.error("Image Search Error:", error);
         reply(`❌ Error: ${error.message || "Failed to fetch images"}`);
     }
 });
@@ -86,21 +92,29 @@ cmd({
     try {
         const query = args.join(" ");
         if (!query) {
-            return reply("🖼️ Please provide a search term!\nExample: *.image car*");
+            return reply("🖼️ Please provide a search term!\nExample: *.image cute cats*");
         }
 
-        await reply(`🔍 Searching Images for *"${query}"*...`);
+        await reply(`🔍 Searching Images for *"${query}"*...`), { quoted: fakevCard };
 
-        const apiUrl = `https://www.movanest.xyz/v2/googleimage?query=${encodeURIComponent(query)}&apikey=YOU_API_KEY`;
+        const apiUrl = `https://www.movanest.xyz/v2/googleimage?query=${encodeURIComponent(query)}`;
         const response = await axios.get(apiUrl);
 
-        if (!response.data?.status || !response.data?.result?.images?.length) {
+        // ✅ Correct validation
+        if (
+            !response.data?.status ||
+            !response.data?.results?.images ||
+            response.data.results.images.length === 0
+        ) {
             return reply("❌ No Images found. Try a different keyword.");
         }
 
-        const results = response.data.result.images;
-        // Randomly pick 5 images
-        const selectedImages = results
+        const images = response.data.results.images.map(img => img.url);
+
+        await reply(`✅ Found *${images.length}* Images for *"${query}"*\n📤 Sending top 5...`);
+
+        // 🎲 Pick random 5
+        const selectedImages = images
             .sort(() => 0.5 - Math.random())
             .slice(0, 5);
 
@@ -111,19 +125,22 @@ cmd({
                     {
                         image: { url: imageUrl },
                         caption: `🖼️ Image for: *${query}*\n> © Powerd by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`,
-                        contextInfo: { mentionedJid: [m.sender] }
+                        contextInfo: {
+                            mentionedJid: [m.sender]
+                        }
                     },
-                    { quoted: fakevCard }
+                    { quoted: mek }
                 );
             } catch (err) {
-                console.warn(`⚠️ Failed to send Image: ${imageUrl}`);
+                console.log("⚠️ Failed to send image:", err.message);
             }
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // ⏳ delay (anti-ban)
+            await new Promise(res => setTimeout(res, 1000));
         }
 
     } catch (error) {
-        console.error('Image Search Error:', error);
-        reply(`❌ Error: ${error.message || "Failed to fetch wallpapers"}`);
+        console.error("Image Search Error:", error);
+        reply(`❌ Error: ${error.message || "Failed to fetch images"}`);
     }
-});
+});                                  
