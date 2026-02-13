@@ -30,7 +30,12 @@ async (conn, mek, m, { from, q, reply, react }) => {
 ${data.result}
         `.trim();
 
-        await conn.sendMessage(from, { text: responseMsg });
+        // ✅ Reply wela send karana thanama
+        await conn.sendMessage(
+            from,
+            { text: responseMsg },
+            { quoted: mek }
+        );
 
         await react("✅");
 
