@@ -34,34 +34,28 @@ async (conn, mek, m, { from, args, q, reply, react }) => {
             return reply("🧠 Please provide a message for the AI.\nExample: `.gpt Hello`");
         }
 
-        await react("⏳");
-
         // ✅ Malvin API - GPT-5 Endpoint
         const apiUrl = `https://malvin-api.vercel.app/ai/gpt-5?text=${encodeURIComponent(q)}`;
+
         const { data } = await axios.get(apiUrl);
 
+        // 🧾 Validate Response
         if (!data?.status || !data?.result) {
             await react("❌");
             return reply("AI failed to respond. Please try again later.");
         }
 
+        // 🧩 Nicely formatted response
         const responseMsg = `
 🤖 *Microsoft Copilot GPT-5 AI Response*  
 ━━━━━━━━━━━━━━━  
 ${data.result}
 
-🕒 *Response Time:* ${data.response_time || "Unknown"}
+🕒 *Response Time:* ${data.response_time}
         `.trim();
 
-        // ✅ Send with Fake vCard quoted
-        await conn.sendMessage(from, {
-            text: responseMsg
-        }, {
-            quoted: fakevCard
-        });
-
+        await reply(responseMsg);
         await react("✅");
-
     } catch (e) {
         console.error("Error in AI command:", e);
         await react("❌");
