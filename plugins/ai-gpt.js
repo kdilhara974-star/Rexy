@@ -10,7 +10,7 @@ const fakevCard = {
     },
     message: {
         contactMessage: {
-            displayName: "© Mr Hiruka",
+            displayName: "© Mr Hiruka (GPT-5) ✅",
             vcard: `BEGIN:VCARD
 VERSION:3.0
 FN:Meta
