@@ -32,7 +32,7 @@ cmd({
   try {
 
     if (!q) {
-      return reply("Provide group link.\nExample:\n.gid https://chat.whatsapp.com/xxxx");
+      return reply("*Please provide a WhatsApp Channel link.*\n\n*Example:* .cinfo https://chat.whatsapp.com/xxxx");
     }
 
     const match = q.match(/chat\.whatsapp\.com\/([\w-]+)/);
