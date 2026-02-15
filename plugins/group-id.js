@@ -23,7 +23,7 @@ END:VCARD`
 cmd({
   pattern: "gid",
   alias: ["groupid"],
-  react: "🔎",
+  react: "🪀",
   desc: "Get Group info from invite link",
   category: "whatsapp",
   filename: __filename
@@ -32,7 +32,7 @@ cmd({
   try {
 
     if (!q) {
-      return reply("Provide group link.\nExample:\n.gid https://chat.whatsapp.com/xxxx");
+      return reply("*Please provide a WhatsApp Channel link.*\n\n*Example:* .gid https://chat.whatsapp.com/xxxx");
     }
 
     const match = q.match(/chat\.whatsapp\.com\/([\w-]+)/);
@@ -46,12 +46,12 @@ cmd({
     if (!inviteInfo?.id) return reply("Group not found.");
 
     const text = `*「 Group Link Info 」*\n
-🔥 Name: ${inviteInfo.subject}
-🆔 ID: ${inviteInfo.id}
-👥 Members: ${inviteInfo.size}
-👑 Owner: ${inviteInfo.owner || "Unknown"}
-📃 Description: ${inviteInfo.desc || "No description"}
-📅 Created: ${inviteInfo.creation ? new Date(inviteInfo.creation * 1000).toLocaleString() : "Unknown"}
+🔥 \`Group Name:\` ${inviteInfo.subject}
+🆔 \`Group ID:\` ${inviteInfo.id}
+👥 \`Participant Count:\` ${inviteInfo.size}
+👑 \`Group Creator:\` ${inviteInfo.owner || "Unknown"}
+📃 \`Group Description:\` ${inviteInfo.desc || "No description"}
+📅 \`Group Created:\´ ${inviteInfo.creation ? new Date(inviteInfo.creation * 1000).toLocaleString() : "Unknown"}
 
 > © Powered by 𝗥𝗔𝗡𝗨𝗠𝗜𝗧𝗛𝗔-𝗫-𝗠𝗗 🌛`;
 
